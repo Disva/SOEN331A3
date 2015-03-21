@@ -17,6 +17,11 @@ state(senchk).
 state(tchk).
 state(psichk).
 state(ready).
+% below are the error_diagnosis state substates
+state(error_rcv).
+state(applicable_rescue).
+state(reset_module_data).
+
 % superstate(S1,S2) - implies S1 is a superstate of S2
 % below are the init state superstates
 superstate(init, boot_hw).
@@ -24,12 +29,19 @@ superstate(init, senchk).
 superstate(init, tchk).
 superstate(init, psichk).
 superstate(init, ready).
+% below are the error_diagnosis state superstates
+superstate(error_diagnosis, error_rcv).
+superstate(error_diagnosis, applicable_rescue).
+superstate(error_diagnosis, reset_module_data).
+
 
 % initialstate(S) - implies S is the initial state
 % below is the main "safe room" initial state
 initialstate(dormant).
 % below is the init state initial state
 initialstate(boot_hw).
+% below is the error_diagnosis initial state
+initialstate(error_rcv).
 
 % transition(Source, Destination, Event, Guard, Action) - implies there is a transition
 % between states Source and Destination which occurs given an Event and Guard, and which
@@ -52,6 +64,9 @@ transition(boot_hw, senchk, hw_ok, _, _).
 transition(senchk, tchk, sen_ok, _, _).
 transition(tchk, psichk, t_ok, _, _).
 transition(psichk, ready, psi_ok, _, _).
+% below are the error_diagnosis substate transitions
+transition(error_rcv, applicable_rescue, _, 'err_protocol_def = true', apply_protocol_rescues).
+transition(error_rcv, reset_module_data, _, 'err_protocol_def = false', reset_to_stable).
 
 % composite_state(S) - returns set of all superstates in the system.
 composite_state(S) :-
