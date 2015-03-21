@@ -4,20 +4,38 @@
 % Due Date: March 30 2015
 
 % state(S) - implies S is a state
+% below are the main "safe room" states
 state(dormant).
 state(init).
 state(safe_shutdown).
 state(error_diagnosis).
 state(idle).
 state(monitoring).
+% below are the init state substates
+state(boot_hw).
+state(senchk).
+state(tchk).
+state(psichk).
+state(ready).
 % superstate(S1,S2) - implies S1 is a superstate of S2
+% below are the init state superstates
+superstate(init, boot_hw).
+superstate(init, senchk).
+superstate(init, tchk).
+superstate(init, psichk).
+superstate(init, ready).
+
 % initialstate(S) - implies S is the initial state
+% below is the main "safe room" initial state
 initialstate(dormant).
+% below is the init state initial state
+initialstate(boot_hw).
 
 % transition(Source, Destination, Event, Guard, Action) - implies there is a transition
 % between states Source and Destination which occurs given an Event and Guard, and which
 % also performs an action. If noevent, noguard, and noaction are convention for leaving
 % them out.
+% below are the main "safe room" transitions
 transition(dormant, init, start, _, _).
 transition(init, idle, init_ok, _, _).
 transition(init, error_diagnosis, init_crash, _, 'broadcast init_err_msg').
@@ -29,6 +47,11 @@ transition(monitoring, error_diagnosis, monitor_crash, _,'broadcast moni_err_msg
 transition(error_diagnosis, monitoring, moni_rescue, _, _).
 transition(error_diagnosis, safe_shutdown, shutdown, 'num_tries = 3', _).
 transition(safe_shutdown, dormant, sleep, _, _).
+%below are the init state substate transitions
+transition(boot_hw, senchk, hw_ok, _, _).
+transition(senchk, tchk, sen_ok, _, _).
+transition(tchk, psichk, t_ok, _, _).
+transition(psichk, ready, psi_ok, _, _).
 
 % composite_state(S) - returns set of all superstates in the system.
 composite_state(S) :-
