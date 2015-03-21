@@ -25,6 +25,12 @@ state(reset_module_data).
 state(monidle).
 state(regulate_environment).
 state(lockdown).
+% below are the lockdown state states
+state(prep_vpurge).
+state(alt_temp).
+state(alt_psi).
+state(risk_assess).
+state(safe_status).
 
 % superstate(S1,S2) - implies S1 is a superstate of S2
 % below are the init state superstates
@@ -41,6 +47,12 @@ superstate(error_diagnosis, reset_module_data).
 superstate(monitoring, monidle).
 superstate(monitoring, regulate_environment).
 superstate(monitoring, lockdown).
+% below are the lockdown state superstates
+superstate(lockdown, prep_vpurge).
+superstate(lockdown, alt_temp).
+superstate(lockdown, alt_psi).
+superstate(lockdown, risk_assess).
+superstate(lockdown, safe_status).
 
 % initialstate(S) - implies S is the initial state
 % below is the main "safe room" initial state
@@ -51,6 +63,8 @@ initialstate(boot_hw).
 initialstate(error_rcv).
 % below is the monitoring initial state
 initialstate(monidle).
+% below is the lockdown initial state
+initialstate(prep_vpurge).
 
 % transition(Source, Destination, Event, Guard, Action) - implies there is a transition
 % between states Source and Destination which occurs given an Event and Guard, and which
@@ -82,6 +96,13 @@ transition(monidle, regulate_environment, no_contagion, _, _).
 transition(monidle, lockdown, contagion_alert, _, ['broadcast FACILITY_CRIT_MESG'|'inlockdown = true']).
 transition(regulate_environment, monidle, after_100ms, _, _).
 transition(lockdown, monidle, purge_succ, _, 'inlockdown = false').
+% below are the lockdown state transitions
+transition(prep_vpurge, alt_temp, initiate_purge, _, lock_doors).
+transition(prep_vpurge, alt_psi, initiate_purge, _, lock_doors).
+transition(alt_temp, risk_assess, tcyc_comp, _, _).
+transition(alt_psi, risk_assess, psicyc_comp, _, _).
+transition(risk_assess, safe_status, _, 'risk < 1%', unlock_doors).
+transition(risk_assess, prep_vpurge, _, 'risk > 1%', _).
 
 % composite_state(S) - returns set of all superstates in the system.
 composite_state(S) :-
