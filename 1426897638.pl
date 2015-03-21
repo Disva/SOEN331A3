@@ -11,16 +11,20 @@ state(safe_shutdown).
 state(error_diagnosis).
 state(idle).
 state(monitoring).
-% below are the init state substates
+% below are the init state states
 state(boot_hw).
 state(senchk).
 state(tchk).
 state(psichk).
 state(ready).
-% below are the error_diagnosis state substates
+% below are the error_diagnosis state states
 state(error_rcv).
 state(applicable_rescue).
 state(reset_module_data).
+% below are the monitoring state states
+state(monidle).
+state(regulate_environment).
+state(lockdown).
 
 % superstate(S1,S2) - implies S1 is a superstate of S2
 % below are the init state superstates
@@ -33,7 +37,10 @@ superstate(init, ready).
 superstate(error_diagnosis, error_rcv).
 superstate(error_diagnosis, applicable_rescue).
 superstate(error_diagnosis, reset_module_data).
-
+% below are the monitoring state superstates
+superstate(monitoring, monidle).
+superstate(monitoring, regulate_environment).
+superstate(monitoring, lockdown).
 
 % initialstate(S) - implies S is the initial state
 % below is the main "safe room" initial state
@@ -42,6 +49,8 @@ initialstate(dormant).
 initialstate(boot_hw).
 % below is the error_diagnosis initial state
 initialstate(error_rcv).
+% below is the monitoring initial state
+initialstate(monidle).
 
 % transition(Source, Destination, Event, Guard, Action) - implies there is a transition
 % between states Source and Destination which occurs given an Event and Guard, and which
@@ -55,18 +64,24 @@ transition(error_diagnosis, init, retry_init, 'num_tries < 3', 'num_tries++').
 transition(idle, monitoring, begin_monitoring, _, _).
 transition(idle, error_diagnosis, idle_crash, _, 'broadcast idle_err_msg').
 transition(error_diagnosis, idle, idle_rescue, _, _).
-transition(monitoring, error_diagnosis, monitor_crash, _,'broadcast moni_err_msg').
+% please change the safe room diagram to reflect the line below!
+transition(monitoring, error_diagnosis, monitor_crash, 'inlockdown = false','broadcast moni_err_msg').
 transition(error_diagnosis, monitoring, moni_rescue, _, _).
 transition(error_diagnosis, safe_shutdown, shutdown, 'num_tries = 3', _).
 transition(safe_shutdown, dormant, sleep, _, _).
-%below are the init state substate transitions
+%below are the init state transitions
 transition(boot_hw, senchk, hw_ok, _, _).
 transition(senchk, tchk, sen_ok, _, _).
 transition(tchk, psichk, t_ok, _, _).
 transition(psichk, ready, psi_ok, _, _).
-% below are the error_diagnosis substate transitions
+% below are the error_diagnosis state transitions
 transition(error_rcv, applicable_rescue, _, 'err_protocol_def = true', apply_protocol_rescues).
 transition(error_rcv, reset_module_data, _, 'err_protocol_def = false', reset_to_stable).
+% below are the monitoring state transitions
+transition(monidle, regulate_environment, no_contagion, _, _).
+transition(monidle, lockdown, contagion_alert, _, ['broadcast FACILITY_CRIT_MESG'|'inlockdown = true']).
+transition(regulate_environment, monidle, after_100ms, _, _).
+transition(lockdown, monidle, purge_succ, _, 'inlockdown = false').
 
 % composite_state(S) - returns set of all superstates in the system.
 composite_state(S) :-
